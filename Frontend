@@ -1,4 +1,1 @@
-cd frontend
-cp .env.example .env # optional; defaults to http://localhost:8000
-pnpm install # or npm/yarn
-pnpm dev # http://localhost:5173
+
