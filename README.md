@@ -1,33 +1,36 @@
-# BailanystaNfac
-A minimal social network where users can create posts on a profile page and browse a feed. This version uses a FastAPI backend and a React (Vite + TypeScript + Tailwind) frontend, connected over a simple JSON API. Optional extras include theme switching, likes/comments, search, and an AI content helper endpoint (server-side only).
-
-# Bailanysta (FastAPI + React)
+# Bailanysta – Flask API + React (Vite + TypeScript)
 
 
-A compact social network demo with a **FastAPI** backend and **React (Vite + TypeScript + Tailwind)** frontend.
+A minimal social network where users can create posts on a profile page and browse a feed of posts from everyone.
 
 
-## Features
-- Profile page to create posts
-- Feed page with author + text (newest first)
-- Own server API (FastAPI)
-- Routing between **/feed** and **/profile** (React Router)
-- Dark/light theme toggle (persisted)
-- Likes & comments (in-memory store)
-- Keyword / hashtag search (server-side)
-- Optional: AI content helper endpoint (server-side; requires `OPENAI_API_KEY`)
+## Demo Features (Level 1)
+- **Profile page** to register a username and create posts.
+- **Feed page** listing posts (author + text), newest first.
+- **Modern component tree** with React Router, typed props, and small composable components.
 
 
-> This demo uses an in-memory store for simplicity. For persistence, replace `store.py` with a database-backed implementation (e.g., SQLModel + SQLite/Postgres).
+> Images are omitted by design per spec. All external calls are via the backend.
 
 
-## Why FastAPI + React?
-- **FastAPI**: modern Python API framework, fast, type-hinted, great docs, easy to deploy.
-- **React + Vite + TS**: fast dev server, type safety, simple build, Tailwind for rapid UI.
-- **Clear separation**: server and client as independent apps; clean CORS and deploy paths.
+---
 
 
-## Getting Started
+## Tech Stack & Why
+- **Flask 3 + SQLAlchemy 2** – simple, reliable, easy to deploy; great for REST APIs.
+- **JWT (flask-jwt-extended)** – minimal stateless auth with a single access token.
+- **React + Vite + TypeScript + Tailwind** – fast DX, type safety, clean styling.
+- **Zustand** – tiny predictable state for auth token/username.
+- **GitHub Actions** – build & test on every push.
+
+
+Trade-off: we avoided server-side templating and SSR to keep the codebase small and clear for the assignment.
+
+
+---
+
+
+## Install & Run
 
 
 ### Backend
@@ -35,4 +38,6 @@ A compact social network demo with a **FastAPI** backend and **React (Vite + Typ
 cd backend
 python -m venv .venv && source .venv/bin/activate # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+export JWT_SECRET_KEY=change-me
+export DATABASE_URL=sqlite:///bailanysta.db
+python wsgi.py # runs on http://localhost:8000
