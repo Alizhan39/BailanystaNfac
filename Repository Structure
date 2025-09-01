@@ -1,0 +1,40 @@
+BailanystaNfac/
+├── backend/
+│ ├── app/
+│ │ ├── __init__.py
+│ │ ├── config.py
+│ │ ├── db.py
+│ │ ├── models.py
+│ │ ├── schemas.py
+│ │ └── routes/
+│ │ ├── __init__.py
+│ │ ├── auth.py
+│ │ └── posts.py
+│ ├── wsgi.py
+│ ├── requirements.txt
+│ └── tests/
+│ └── test_posts.py
+├── frontend/
+│ ├── index.html
+│ ├── package.json
+│ ├── tsconfig.json
+│ ├── tailwind.config.ts
+│ ├── postcss.config.js
+│ ├── vite.config.ts
+│ └── src/
+│ ├── main.tsx
+│ ├── App.tsx
+│ ├── lib/api.ts
+│ ├── lib/types.ts
+│ ├── store/auth.ts
+│ ├── components/
+│ │ ├── NavBar.tsx
+│ │ ├── PostCard.tsx
+│ │ └── PostForm.tsx
+│ └── pages/
+│ ├── FeedPage.tsx
+│ └── ProfilePage.tsx
+├── .github/
+│ └── workflows/
+│ └── ci.yml
+└── README.md
