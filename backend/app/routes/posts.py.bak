@@ -1,14 +1,18 @@
 from __future__ import annotations
+
 from datetime import datetime
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+from flask import Blueprint, jsonify, request, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import and_, or_, func
-from ..db import db
+
 from ..models import Post, User, Like
+from ..db import db
+
 
 bp = Blueprint("posts", __name__, url_prefix="/api/posts")
 
-def _serialize_post(p: Post, like_counts: dict[int,int], liked_by_me_ids: set[int] | None = None):
+
+def _serialize_post(p: Post, like_counts: dict[int, int] | None = None) -> dict:
     return {
         "id": p.id,
         "text": p.text,
@@ -18,19 +22,21 @@ def _serialize_post(p: Post, like_counts: dict[int,int], liked_by_me_ids: set[in
             "username": p.author.username,
             "created_at": p.author.created_at.isoformat(),
         },
-        "likes": like_counts.get(p.id, 0),
-        "liked_by_me": bool(liked_by_me_ids and p.id in liked_by_me_ids),
+        "likes": (like_counts or {}).get(p.id, 0),
     }
+
 
 @bp.get("")
 def list_posts():
+    """
+    Cursor pagination: /api/posts?cursor=<created_at_iso>|<id>&limit=20
+    Returns: { items: [...], next_cursor: "<iso>|<id>" | null }
+    """
     cursor = request.args.get("cursor")
-    try:
-        limit = min(int(request.args.get("limit", 20)), 50)
-    except Exception:
-        limit = 20
+    limit = min(int(request.args.get("limit", 20)), 50)
 
     q = Post.query
+
     if cursor:
         try:
             ts_s, id_s = cursor.split("|")
@@ -39,6 +45,9 @@ def list_posts():
         except Exception:
             return jsonify({"error": "bad cursor"}), 400
 
+
+
+    # get one extra to decide if there's a next page
     items = q.order_by(Post.created_at.desc(), Post.id.desc()).limit(limit + 1).all()
 
     next_cursor = None
@@ -47,13 +56,10 @@ def list_posts():
         next_cursor = f"{last.created_at.isoformat()}|{last.id}"
         items = items[:limit]
 
+    # like counts in a single grouped query
     like_counts: dict[int, int] = {}
-    liked_by_me_ids: set[int] = set()
-
     if items:
         post_ids = [p.id for p in items]
-
-        # суммарные лайки
         rows = db.session.execute(
             db.select(Like.post_id, func.count(Like.id))
             .where(Like.post_id.in_(post_ids))
@@ -62,55 +68,59 @@ def list_posts():
         for pid, cnt in rows:
             like_counts[int(pid)] = int(cnt)
 
-        # liked_by_me (опционально читаем токен)
-        try:
-            verify_jwt_in_request(optional=True)
-            ident = get_jwt_identity()
-            uid = int(ident) if ident is not None else None
-        except Exception:
-            uid = None
+    return jsonify({"items": [_serialize_post(p, like_counts) for p in items], "next_cursor": next_cursor})
 
-        if uid:
-            rows2 = db.session.execute(
-                db.select(Like.post_id)
-                .where(and_(Like.user_id == uid, Like.post_id.in_(post_ids)))
-            ).scalars().all()
-            liked_by_me_ids = {int(x) for x in rows2}
-
-    return jsonify({"items": [_serialize_post(p, like_counts, liked_by_me_ids) for p in items], "next_cursor": next_cursor})
 
 @bp.post("")
 @jwt_required()
 def create_post():
-    uid = int(get_jwt_identity())
+    uid = get_jwt_identity()
     user = User.query.get_or_404(uid)
+
     payload = request.get_json(force=True) or {}
     text = (payload.get("text") or "").strip()
+
     if not text:
         return jsonify({"error": "text required"}), 400
     if len(text) > 1000:
         return jsonify({"error": "text too long (1000 chars max)"}), 413
+
     post = Post(user_id=user.id, text=text)
     db.session.add(post)
     db.session.commit()
+
+    # Optional real-time: broadcast to connected WebSocket clients if Flask-Sock is set up
+    app = current_app
+    for ws in list(getattr(app, "pubsub_clients", set())):
+        try:
+            ws.send_json({"type": "new_post", "post_id": post.id})
+        except Exception:
+            try:
+                app.pubsub_clients.discard(ws)
+            except Exception:
+                pass
+
     return jsonify(_serialize_post(post, {})), 201
+
 
 @bp.post("/<int:post_id>/like")
 @jwt_required()
 def like_post(post_id: int):
-    uid = int(get_jwt_identity())
+    uid = get_jwt_identity()
     if not Post.query.get(post_id):
         return jsonify({"error": "not found"}), 404
+
     exists = Like.query.filter_by(user_id=uid, post_id=post_id).first()
     if not exists:
         db.session.add(Like(user_id=uid, post_id=post_id))
         db.session.commit()
     return jsonify({"ok": True}), 201
 
+
 @bp.delete("/<int:post_id>/like")
 @jwt_required()
 def unlike_post(post_id: int):
-    uid = int(get_jwt_identity())
+    uid = get_jwt_identity()
     like = Like.query.filter_by(user_id=uid, post_id=post_id).first()
     if like:
         db.session.delete(like)
