@@ -27,6 +27,6 @@ def register():
 @bp.get("/me")
 @jwt_required()
 def me():
-    uid = get_jwt_identity()
+    uid = int(get_jwt_identity())
     user = User.query.get_or_404(uid)
     return jsonify({"id": user.id, "username": user.username, "created_at": user.created_at.isoformat()})
