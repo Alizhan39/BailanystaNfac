@@ -1,0 +1,34 @@
+---
+
+
+## Notes on creativity & optimization
+- The UI uses a clean card design with a sticky nav and subtle shadows, feeling modern with little code.
+- The backend uses blueprints and a small schema layer for explicit boundaries and easier testing.
+- CI keeps the repo healthy; TypeScript & pydantic give guardrails without heavy frameworks.
+
+
+---
+
+
+## How to apply this to your repo
+1. Create folders `backend/` and `frontend/` in your repo root (if they don’t exist).
+2. Copy each file above into place.
+3. Push to GitHub on `main` to trigger CI.
+4. Run locally as per **Install & Run**.
+
+
+Happy building! 🎉
+
+
+
+
+
+
+---
+
+
+## Next-level enhancements you can add quickly
+
+
+### 1) Pagination, likes, and rate limiting (backend)
+**New dep:** add to `backend/requirements.txt`
