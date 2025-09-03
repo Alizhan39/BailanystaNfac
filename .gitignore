@@ -7,3 +7,6 @@ frontend/node_modules/
 frontend/dist/
 frontend_backup_*.tgz
 backend/app/routes/*.bak*
+frontend/src/**/*.js
+frontend/src/**/*.js.map
+frontend/tsconfig.tsbuildinfo
