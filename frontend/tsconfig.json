@@ -1,12 +1,15 @@
 {
-"compilerOptions": {
-"target": "ES2020",
-"lib": ["ES2020", "DOM"],
-"module": "ESNext",
-"jsx": "react-jsx",
-"moduleResolution": "Bundler",
-"strict": true,
-"baseUrl": ".",
-"paths": { "@/*": ["src/*"] }
-}
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "types": ["vite/client"]     // <— вот это важно
+  },
+  "include": ["src"]
 }
