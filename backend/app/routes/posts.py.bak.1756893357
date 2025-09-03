@@ -1,17 +1,17 @@
+from __future__ import annotations
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from sqlalchemy import and_, or_, func
 from ..db import db
-from ..models import Post, User, Like, Comment  # убедись, что Comment есть в models.py
-
+from ..models import Post, User, Like, Comment
 bp = Blueprint("posts", __name__, url_prefix="/api/posts")
 
 def _serialize_post(p, like_counts, current_user_id=None):
     liked_by_me = False
     if current_user_id:
         liked_by_me = bool(Like.query.filter_by(user_id=current_user_id, post_id=p.id).first())
-    comments_count = db.session.execute(
+comments_count = db.session.execute(
         db.select(func.count(Comment.id)).where(Comment.post_id == p.id)
     ).scalar_one()
     return {
@@ -30,7 +30,7 @@ def _serialize_post(p, like_counts, current_user_id=None):
 
 @bp.get("")
 def list_posts():
-    current_user_id = None
+current_user_id = None
     try:
         verify_jwt_in_request(optional=True)
         uid = get_jwt_identity()

@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from .config import Config
 from .db import db
-from .routes import auth_bp, posts_bp
+from .routes import auth_bp, posts_bp, users_bp
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -16,6 +16,7 @@ def create_app() -> Flask:
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(posts_bp)
+    app.register_blueprint(users_bp)
 
     with app.app_context():
         db.create_all()
