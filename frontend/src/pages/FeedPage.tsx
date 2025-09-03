@@ -8,7 +8,16 @@ type Post = { id: number; text: string; created_at: string; author: User; likes?
 type FeedResp = { items: Post[]; next_cursor: string | null }
 
 export default function FeedPage() {
-  const { token } = useAuth()
+  const token =
+  typeof localStorage !== 'undefined'
+    ? (localStorage.getItem('token') ?? undefined)
+    : undefined
+
+const data = await api.getPosts(token)
+// ...
+await api.likePost(post.id, token)
+// ...
+await api.unlikePost(post.id, token)
   const [posts, setPosts] = useState<Post[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
