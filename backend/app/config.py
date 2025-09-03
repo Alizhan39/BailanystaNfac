@@ -8,3 +8,6 @@ class Config:
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else [
         "http://localhost:5173", "http://127.0.0.1:5173"
     ]
+
+from datetime import timedelta
+JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES','86400')))
