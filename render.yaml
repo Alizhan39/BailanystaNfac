@@ -1,11 +1,10 @@
 services:
   - type: web
-    name: bailanysta
+    name: bailanysta-flask
     env: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && gunicorn server:app --bind 0.0.0.0:$PORT
-    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
