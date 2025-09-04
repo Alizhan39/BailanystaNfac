@@ -1,116 +1,112 @@
-// frontend/src/lib/api.ts
+export type ApiUser = { id: number; username: string; created_at: string }
+export type ApiPost = {
+  id: number; text: string; created_at: string; author: ApiUser
+  likes?: number; liked_by_me?: boolean; comments_count?: number
+}
+export type ApiComment = { id: number; text: string; created_at: string; author: ApiUser }
 
-export const API_URL =
-  (import.meta?.env?.VITE_API_URL as string | undefined) ||
+const BASE: string =
+  // @ts-ignore
+  (import.meta as any)?.env?.VITE_API_URL ??
+  import.meta.env?.VITE_API_URL ??
   'http://127.0.0.1:8000'
 
-const logoutAndRedirect = () => {
-  try {
-    localStorage.removeItem('token')
-    localStorage.removeItem('username')
-  } catch {}
-}
+const apiUrl = (path: string) => `${BASE.replace(/\/$/, '')}${path}`
 
-async function http(path: string, opts: RequestInit = {}) {
-  const res = await fetch(`${API_URL}${path}`, { ...opts })
-
+async function http<T = any>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(apiUrl(path), init)
   if (!res.ok) {
-    if (res.status === 401) logoutAndRedirect()
-    let msg = `HTTP ${res.status}`
-    try {
-      const data = await res.json()
-      msg = (data as any)?.error || (data as any)?.msg || msg
-    } catch {}
-    throw new Error(msg)
+    let msg: any
+    const ct = res.headers.get('content-type') || ''
+    if (ct.includes('application/json')) {
+      try { msg = await res.json() } catch { msg = null }
+    } else {
+      msg = await res.text()
+    }
+    throw new Error(
+      (typeof msg === 'string' && msg) ||
+      msg?.msg || msg?.error || res.statusText || `HTTP ${res.status}`
+    )
   }
-
-  const text = await res.text()
-  return text ? JSON.parse(text) : null
+  const ct = res.headers.get('content-type') || ''
+  if (ct.includes('application/json')) return (await res.json()) as T
+  return (await res.text()) as unknown as T
 }
+
+function authHeaders(token?: string): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+const hdr = (extra: Record<string,string> = {}, token?: string): HeadersInit =>
+  ({ ...extra, ...authHeaders(token) })
 
 export const api = {
-  register(u?: string) {
+  async register(username?: string) {
     return http('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u }),
+      headers: hdr({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ username }),
     })
   },
-  login(u?: string) {
+  async login(username?: string) {
     return http('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u }),
+      headers: hdr({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ username }),
     })
   },
-  me(t?: string) {
-    return http('/api/auth/me', {
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
-    })
+  async me(token?: string) {
+    return http('/api/auth/me', { headers: hdr({}, token) })
   },
-
-  getPosts(t?: string, cursor?: string) {
+  async getPosts(token?: string, cursor?: string) {
     const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
-    return http(`/api/posts${qs}`, {
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
-    })
+    return http(`/api/posts${qs}`, { headers: hdr({}, token) })
   },
-  getPost(id: number, t?: string) {
-    return http(`/api/posts/${id}`, {
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
-    })
-  },
-  createPost(t?: string, text?: string) {
+  async createPost(token: string, text: string) {
     return http('/api/posts', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(t ? { Authorization: `Bearer ${t}` } : {}),
-      },
+      headers: hdr({ 'Content-Type': 'application/json' }, token),
       body: JSON.stringify({ text }),
     })
   },
-  updatePost(t?: string, id?: number, text?: string) {
+  async updatePost(token: string, id: number, text: string) {
     return http(`/api/posts/${id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(t ? { Authorization: `Bearer ${t}` } : {}),
-      },
+      headers: hdr({ 'Content-Type': 'application/json' }, token),
       body: JSON.stringify({ text }),
     })
   },
-  deletePost(t?: string, id?: number) {
+  async deletePost(token: string, id: number) {
     return http(`/api/posts/${id}`, {
       method: 'DELETE',
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      headers: hdr({}, token),
     })
   },
-
-  like(t?: string, id?: number) {
+  async like(token: string, id: number) {
     return http(`/api/posts/${id}/like`, {
       method: 'POST',
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      headers: hdr({}, token),
     })
   },
-  unlike(t?: string, id?: number) {
-    return http(`/api/posts/${id}/like`, {
-      method: 'DELETE',
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
+  async unlike(token: string, id: number) {
+    return http(`/api/posts/${id}/unlike`, {
+      method: 'POST',
+      headers: hdr({}, token),
     })
   },
-
-  listComments(id: number) {
-    return http(`/api/posts/${id}/comments`)
-  },
-  addComment(t?: string, id?: number, text?: string) {
+  async addComment(token: string, id: number, text: string) {
     return http(`/api/posts/${id}/comments`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(t ? { Authorization: `Bearer ${t}` } : {}),
-      },
+      headers: hdr({ 'Content-Type': 'application/json' }, token),
       body: JSON.stringify({ text }),
+    })
+  },
+  async getComments(id: number) {
+    return http<ApiComment[]>(`/api/posts/${id}/comments`)
+  },
+  async deleteComment(token: string, postId: number, commentId: number) {
+    return http(`/api/posts/${postId}/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: hdr({}, token),
     })
   },
 }
